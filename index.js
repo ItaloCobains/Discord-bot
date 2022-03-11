@@ -1,35 +1,37 @@
 "use strict";
+
 require("dotenv").config();
+
 const { Client, MessageEmbed } = require("discord.js");
 const client = new Client();
-const TOKEN = process.env.TOKEN;
+
+const DISCORD_BOT_SECRET = process.env.DISCORD_BOT_SECRET;
 const PREFIX = process.env.PREFIX;
 
 client.on("ready", () => {
-  console.info("app aberto");
+  console.info("Aplicativo aberto!");
 });
 
 let game = {
   gameStarted: false,
   userId: null,
-  typeNumber: 0,
+  typedNumber: 0,
   randomNumber: 0,
 };
 
 const gameDefault = {
   gameStarted: false,
   userId: null,
-  typeNumber: 0,
+  typedNumber: 0,
   randomNumber: 0,
 };
 
 client.on("message", async (message) => {
   if (message.author.bot) return;
 
-  // const command = message.content.split(PREFIX)[1];
   const command = message.content.includes(PREFIX)
     ? message.content.split(PREFIX)[1]
-    : message.content.includes(PREFIX)
+    : !message.content.includes(PREFIX)
     ? message.content
     : "";
   const author = message.author;
@@ -44,24 +46,43 @@ client.on("message", async (message) => {
     newMessage.react("▶️");
     newMessage.react("⏹️");
 
-    newMessage = await collectReaction(newMessage, [{key: '▶️'}, {key: '⏹️'}], async (message, reaction)=>{
-      if(reaction.emoji.name === '▶️'){
-        await newMessage.delete({timeout: 1000})
+    newMessage = await collectReaction(
+      newMessage,
+      [{ key: "▶️" }, { key: "⏹️" }],
+      async (message, reaction) => {
+        if (reaction.emoji.name === "▶️") {
+          await newMessage.delete({ timeout: 1000 });
 
-        await message.channel.send("Entendi, vamos começar então !!")
+          await message.channel.send("Entendi, vamos começar então!");
 
-        await message.channel.send()
+          await message.channel.send(printEmbed(author));
+
+          game.randomNumber = Math.floor(Math.random() * 10) + 1;
+        } else {
+          await newMessage.delete({ timeout: 1000 });
+          message.channel.send("Tudo bem, fica pra próxima.");
+
+          game = gameDefault;
+        }
       }
-    })
+    );
+  } else if (game.userId) {
+    if (game.randomNumber === parseInt(command)) {
+      await message.channel.send("Você ganhou!");
+      game = gameDefault;
+    } else {
+      await message.channel.send("Você não acertou, tente novamente!");
+    }
   }
-
-  if (command === "ola") message.channel.send("Ola");
-  else if (command == "msg Colorida") {
+  if (command === "olá") {
+    message.channel.send("mundo");
+  } else if (command === "mensagem colorida") {
     const embed = new MessageEmbed()
-      .setTitle("Testando mensagem randola")
-      .setColor("oxff0000")
-      .setDescription("kenny e gay\n Adriano tbm")
-      .setAuthor("I");
+      .setTitle("Título maneiro")
+      .setColor("0xff0000")
+      .setDescription("Olá, tudo bem?\nOutra linha.")
+      .setAuthor("Eu");
+
     message.channel.send(embed);
   }
 });
@@ -71,25 +92,25 @@ function printStartGame(author) {
     .setColor("#e30000")
     .setTitle("Jogo da Sorte")
     .setDescription(`Jogador: ${author.username}`)
-    .addField("Vamos iniciar?", "Reaja a essa menssagem com o iniciar")
+    .addField("Vamos iniciar?", "Reaja a essa mensagem com um iniciar")
     .setFooter("Jogo da Sorte")
     .setTimestamp();
 
   return embed;
 }
-//func do game a baixo, onde parei no codigo e no video foi no minuto 14.59
-function printStartGame(author) {
+
+function printEmbed(author) {
   const embed = new MessageEmbed()
     .setColor("#e30000")
     .setTitle("Jogo da Sorte")
     .setDescription(`Jogador: ${author.username}`)
-    .addField("Vamos iniciar?", "Reaja a essa menssagem com o iniciar")
+    .addField("Objetivo", "Descobrir o número em apenas 2 tentativas")
+    .addField("Como jogar", "Digite um número de 1 a 10")
     .setFooter("Jogo da Sorte")
     .setTimestamp();
 
   return embed;
 }
-
 
 async function collectReaction(message, emojiList, code) {
   const filter = (reaction, user) => {
@@ -103,12 +124,12 @@ async function collectReaction(message, emojiList, code) {
     .awaitReactions(filter, {
       max: 1,
       time: 30000,
-      erros: ["time"],
+      errors: ["time"],
     })
     .then(async (collected) => {
       const reaction = collected.first();
 
-      code(reaction);
+      code(message, reaction);
     })
     .catch((err) => {
       message.channel.send("Estou cancelando o nosso game.");
@@ -117,6 +138,4 @@ async function collectReaction(message, emojiList, code) {
   return newMessage;
 }
 
-
-
-client.login(TOKEN);
+client.login(DISCORD_BOT_SECRET);
